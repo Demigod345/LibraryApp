@@ -1,2 +1,6 @@
 gitRepo.sh
 credentials.env
+.env
+node_modules
+src
+
