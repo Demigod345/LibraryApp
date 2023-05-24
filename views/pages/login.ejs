@@ -1,0 +1,34 @@
+<%- include('../template/head')-%>
+
+<script src="../../login.js">
+
+</script>
+<body class="text-center">
+    <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
+        <main role="main" class="inner cover">
+            <form action="http://localhost:5000/login" method="POST">
+                <div>
+                    <label for="username">Username</label>
+                    <input name="username" id="username"/>
+                </div>
+                <div>
+                    <label for="password">Password</label>
+                    <input name="password" id="password" />
+                </div>
+                <div>
+                    <button>Login</button>
+                </div>
+            </form>
+            <a href="/signUp">
+                <button>Sign Up</button>
+            </a>
+        </main>
+    </div>
+</body>
+<script>
+    window.onload = function() {
+        document.getElementById('home').classList.add('active');
+      };
+</script>
+</html>"/>
+                  

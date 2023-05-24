@@ -1,0 +1,32 @@
+<%- include('../template/head')-%>
+
+<body class="text-center">
+    <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
+        <main role="main" class="inner cover">
+            <form action="http://localhost:5000/" method="POST">
+                <div>
+                    <label for="username">Username</label>
+                    <input name="username" id="username" />
+                  </div>
+                  <div>
+                    <label for="to">Who do you want to say it to?</label>
+                    <input name="to" id="to" value="Mom" />
+                  </div>
+                  <div>
+                    <button>Send my greetings</button>
+                  </div>
+            </form>
+            <% books.forEach(function(entry) {%>
+                <a href="<%= entry.title%>" class="list-group-item text-dark"><%=entry.bookId%></a>
+                <%});%>
+
+            <%- include('../template/displayBooks')-%>      
+        </main>
+    </div>
+</body>
+<script>
+    window.onload = function() {
+        document.getElementById('home').classList.add('active');
+      };
+</script>
+</html>

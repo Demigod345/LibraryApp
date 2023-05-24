@@ -5,6 +5,8 @@ const bodyParser = require("body-parser");
 const crypto = require("crypto");
 const db = require("./config/db.config.js");
 const jwt = require("jsonwebtoken");
+const path = require("path");
+const cookieParser = require("cookie-parser");
 // db.connect();
 
 dotenv.config();
@@ -12,6 +14,11 @@ const app = express();
 const port = process.env.PORT || 5000;
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(cookieParser());
+
+app.set("views", path.join(__dirname, "views"));
+app.set("view engine", "ejs");
+app.use(express.static("./public"));
 
 async function hashPassword(password) {
   const saltRounds = 10;
@@ -24,122 +31,33 @@ async function hashPassword(password) {
   };
 }
 
-function isAdmin(req, res, next) {
-  if (req.adminAuth === 1) {
+function authenticateUser(req, res, next) {
+  const token = req.cookies.token;
+  let tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
+  let jwtSecretKey = process.env.JWT_SECRET_KEY || "superdupersecurekey";
+  const verified = jwt.verify(token, jwtSecretKey);
+  console.log(verified);
+  req.userId = verified.userId;
+
+  if (verified && !verified.isAdmin) {
     next();
   } else {
-    res.status(403).send({ msg: "Not Authenticated" });
+    res.redirect("/login");
   }
 }
 
-function authenticateUser(req, res, next) {
-  next();
-}
-
 function authenticateAdmin(req, res, next) {
-  next();
-}
-
-app.get("/", (req, res) => {
-  res.send("Hello World");
-});
-
-app.post("/", (req, res) => {
-  message = req.body.message;
-  console.log(message);
-});
-
-app.listen(port, (error) => {
-  if (!error) console.log(`Server is listening on http://localhost:${port}`);
-  else console.log("Error occurred, server can't start", error);
-});
-
-app.get("/signUp", (req, res) => {
-  res.send("SignUp Page");
-});
-
-app.post("/signUp", async (req, res, next) => {
-  console.log(req.body.password);
-  let username = req.body.username;
-  let password = req.body.password;
-  let passwordC = req.body.passwordC;
-  var pass = await hashPassword(password);
-  console.log(pass);
-  db.query(
-    "select * from users where userName = " + db.escape(username) + ";",
-    (err, result) => {
-      if (err) throw err;
-      else {
-        if (result[0] === undefined) {
-          if (username && password === passwordC) {
-            db.query(
-              `INSERT INTO users (userName, salt, hash, isAdmin) VALUES(${db.escape(
-                username
-              )},'${pass.salt}', '${pass.hash}', false);`
-            );
-            res.send("Success");
-          } else if (password !== passwordC) {
-            res.send("Passwords didn't match");
-          } else {
-            res.send("Password must not be empty");
-          }
-        } else {
-          res.send("Username is not unique");
-        }
-      }
-    }
-  );
-});
-
-app.get("/login", (req, res) => {
-  res.send("Login Page");
-});
-
-app.post("/login", async (req, res, next) => {
-  let username = req.body.username;
-  let password = req.body.password;
-  // console.log(username);
-  // console.log(password);
-
-  db.query(
-    `SELECT salt,hash,userId, isAdmin FROM users WHERE userName = ${db.escape(
-      username
-    )};`,
-    async (err, result, field) => {
-      if (err) throw err;
-      else if (result.length == 0) {
-        res.send("Username doesn't exist");
-      } else {
-        let hash = await bcrypt.hash(password, result[0].salt);
-        if (hash === result[0].hash) {
-          console.log(`${username} logged in!`);
-          res.send("Successful Login Attempt");
-          //implement cookies and check for admin and direct to respective pages
-        } else console.log("Some error occured");
-        res.send("UnSuccessful Login Attempt");
-      }
-    }
-  );
-});
-
-app.post("/genToken", (req, res) => {
-  let jwtSecretKey = process.env.JWT_SECRET_KEY || "superdupersecurekey";
-  let data = {
-    time: Date(),
-    userId: 12,
-  };
-
-  const token = jwt.sign(data, jwtSecretKey);
-  const obj = { jwtToken: token, helo: 12 };
-
-  res.send(obj);
-});
-
-function verifyJWT(req, res, next) {
+  const token = req.cookies.token;
   let tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
-  let jwtSecretKey = process.env.JWT_SECRET_KEY;
+  let jwtSecretKey = process.env.JWT_SECRET_KEY || "superdupersecurekey";
+  const verified = jwt.verify(token, jwtSecretKey);
+  console.log(verified);
 
-  next();
+  if (verified && verified.isAdmin) {
+    next();
+  } else {
+    res.redirect("/login");
+  }
 }
 
 app.get("/valToken", (req, res) => {
@@ -164,84 +82,240 @@ app.get("/valToken", (req, res) => {
   }
 });
 
-app.post("/newBook", authenticateAdmin, (req, res, next) => {
-  let title = req.body.title;
-  let quantity = parseInt(req.body.quantity);
+app.get("/", (req, res, next) => {
+  var books = [];
+  db.query(`SELECT * FROM books  ;`, (err, result, field) => {
+    books = result;
+    res.render("pages/home", { books: books });
+  });
+});
+
+app.post("/", (req, res) => {
+  message = req.body.message;
+  // console.log(message);
+  console.log(req.cookies.token);
+});
+
+app.listen(port, (error) => {
+  if (!error) console.log(`Server is listening on http://localhost:${port}`);
+  else console.log("Error occurred, server can't start", error);
+});
+
+app.get("/signUp", (req, res) => {
+  res.render("pages/signUp");
+});
+
+app.post("/signUp", async (req, res, next) => {
+  let username = req.body.username;
+  let password = req.body.password;
+  let passwordC = req.body.passwordC;
+
+  if (password !== passwordC) {
+    // res.send("Passwords didn't match");
+    res.json({ hey: 12 });
+    res.redirect("/signUp");
+  } else {
+    var pass = await hashPassword(password);
+    console.log(pass);
+    db.query(
+      "select * from users where userName = " + db.escape(username) + ";",
+      (err, result) => {
+        if (err) throw err;
+        else {
+          if (result[0] === undefined) {
+            if (username && password === passwordC) {
+              db.query(
+                `INSERT INTO users (userName, salt, hash, isAdmin) VALUES(${db.escape(
+                  username
+                )},'${pass.salt}', '${pass.hash}', false);`
+              );
+              //success
+              res.redirect("/login");
+            } else if (password !== passwordC) {
+              // res.send("Passwords didn't match");
+              res.redirect("/signUp");
+            } else {
+              // res.send("Password must not be empty");
+              res.redirect("/signUp");
+            }
+          } else {
+            // res.send("Username is not unique");
+            res.redirect("/signUp");
+          }
+        }
+      }
+    );
+  }
+});
+
+app.get("/login", (req, res) => {
+  res.render("pages/login");
+});
+
+app.post("/login", async (req, res) => {
+  let username = req.body.username;
+  let password = req.body.password;
+  // console.log(username);
+  // console.log(password);
 
   db.query(
-    `SELECT * FROM books WHERE title= ${db.escape(title)};`,
-    (err, result) => {
+    `SELECT salt,hash,userId, isAdmin FROM users WHERE userName = ${db.escape(
+      username
+    )};`,
+    async (err, result, field) => {
       if (err) throw err;
-
-      if (result[0] !== undefined) {
-        //update existing records
-        let newTotalQuantity = quantity + result[0].totalQuantity;
-        let newAvailable = quantity + result[0].available;
-        db.query(`UPDATE books 
-            SET totalQuantity = ${db.escape(newTotalQuantity)},
-            available = ${db.escape(newAvailable)}
-            WHERE title= ${db.escape(title)};`);
-
-        if (!err) {
-          res.send("RECORDS UPDATED");
-        }
+      else if (result.length == 0) {
+        // res.send("Username doesn't exist");
+        res.redirect("/login");
       } else {
-        db.query(`INSERT INTO books(title, totalQuantity, available) 
-            VALUES (${db.escape(title)}, ${db.escape(quantity)}, ${db.escape(
-          quantity
-        )} );`);
+        let userId = result[0].userId;
+        let hash = await bcrypt.hash(password, result[0].salt);
+        let isAdmin = result[0].isAdmin;
+        let redirect = "/userHome";
 
-        if (!err) {
-          res.send("NEW BOOK ADDED");
+        if (isAdmin) {
+          redirect = "/adminHome";
+        }
+        if (hash === result[0].hash) {
+          console.log(`${username} logged in!`);
+          // res.send("Successful Login Attempt");
+          let jwtSecretKey =
+            process.env.JWT_SECRET_KEY || "superdupersecurekey";
+          let data = {
+            time: Date(),
+            userId: userId,
+            username: username,
+            isAdmin: isAdmin,
+            exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24,
+          };
+
+          const token = jwt.sign(data, jwtSecretKey);
+
+          res
+            .cookie("token", token, {
+              secure: true,
+              httpOnly: true,
+              sameSite: "strict",
+            })
+            .redirect(redirect);
+
+          //implement cookies and check for admin and direct to respective pages
+        } else {
+          console.log("Some error occured");
+          // res.send("UnSuccessful Login Attempt");
+
+          res.redirect("/login");
         }
       }
     }
   );
+});
+
+app.get("/adminHome", authenticateAdmin, (req, res, next) => {
+  var books = [];
+  db.query(`SELECT * FROM books  ;`, (err, result, field) => {
+    books = result;
+    res.render("pages/adminHome", { books: books });
+  });
+});
+
+app.get("/userHome", authenticateUser, (req, res, next) => {
+  var books = [];
+  db.query(`SELECT * FROM books  ;`, (err, result, field) => {
+    books = result;
+    res.render("pages/userHome", { books: books });
+  });
+});
+
+app.post("/newBook", authenticateAdmin, (req, res, next) => {
+  let title = req.body.title;
+  let quantity = parseInt(req.body.quantity);
+
+  if (quantity > 0) {
+    db.query(
+      `SELECT * FROM books WHERE title= ${db.escape(title)};`,
+      (err, result) => {
+        if (err) throw err;
+
+        if (result[0] !== undefined) {
+          //update existing records
+          let newTotalQuantity = quantity + result[0].totalQuantity;
+          let newAvailable = quantity + result[0].available;
+          db.query(`UPDATE books 
+            SET totalQuantity = ${db.escape(newTotalQuantity)},
+            available = ${db.escape(newAvailable)}
+            WHERE title= ${db.escape(title)};`);
+
+          if (!err) {
+            res.send("RECORDS UPDATED");
+          }
+        } else {
+          db.query(`INSERT INTO books(title, totalQuantity, available) 
+            VALUES (${db.escape(title)}, ${db.escape(quantity)}, ${db.escape(
+            quantity
+          )} );`);
+
+          if (!err) {
+            res.redirect("/adminHome");
+            // res.send("NEW BOOK ADDED");
+          }
+        }
+      }
+    );
+  }
 });
 
 app.post("/removeBook", authenticateAdmin, (req, res, next) => {
   let title = req.body.title;
   let quantity = parseInt(req.body.quantity);
+  console.log(title);
+  console.log(quantity);
+  if (quantity > 0) {
+    db.query(
+      `SELECT * FROM books WHERE title= ${db.escape(title)};`,
+      (err, result) => {
+        if (err) throw err;
 
-  db.query(
-    `SELECT * FROM books WHERE title= ${db.escape(title)};`,
-    (err, result) => {
-      if (err) throw err;
-
-      if (result[0] !== undefined) {
-        // //update existing records
-        let newTotalQuantity = result[0].totalQuantity - quantity;
-        let newAvailable = result[0].available - quantity;
-
-        if (
-          quantity <= result[0].available &&
-          newAvailable >= 0 &&
-          newTotalQuantity > 0
-        ) {
-          db.query(`UPDATE books 
+        if (result[0] !== undefined) {
+          // //update existing records
+          let newTotalQuantity = result[0].totalQuantity - quantity;
+          let newAvailable = result[0].available - quantity;
+          console.log(newAvailable);
+          console.log(newTotalQuantity);
+          if (
+            quantity <= result[0].available &&
+            newAvailable >= 0 &&
+            newTotalQuantity > 0
+          ) {
+            db.query(`UPDATE books 
                 SET totalQuantity = ${db.escape(newTotalQuantity)},
                 available = ${db.escape(newAvailable)}
                 WHERE title= ${db.escape(title)};`);
-          return res.send("BOOKS REMOVED!!");
-        } else if (newAvailable == newTotalQuantity && newTotalQuantity == 0) {
-          db.query(`DELETE from books 
+            return res.redirect("/adminHome");
+          } else if (
+            newAvailable == newTotalQuantity &&
+            newTotalQuantity == 0
+          ) {
+            db.query(`DELETE from books 
                 WHERE title= ${db.escape(title)};`);
-          return res.send("BOOK DELETED!!");
+            return res.redirect("/adminHome");
+          } else {
+            return res.send("INVALID QUANTITY!!");
+          }
         } else {
-          return res.send("INVALID QUANTITY!!");
-        }
-      } else {
-        if (!err) {
-          return res.send("BOOK DOESN'T EXIST");
+          if (!err) {
+            return res.send("BOOK DOESN'T EXIST");
+          }
         }
       }
-    }
-  );
+    );
+  }
+  //handle for negative quantity remove
 });
 
 app.post("/requestBook", authenticateUser, (req, res, next) => {
   let bookId = req.body.bookId;
-  let userId = req.body.userId;
+  let userId = req.userId;
 
   db.query(
     `SELECT * FROM books WHERE bookId= ${db.escape(bookId)}`,
@@ -264,7 +338,8 @@ app.post("/requestBook", authenticateUser, (req, res, next) => {
                   if (error) throw error;
                   else {
                     // db.query(`UPDATE books SET available = available -1 WHERE bookId = ${bookId}`);
-                    return res.send("SUCCESSFUL ISSUE REQUEST!!");
+                    // return res.send("SUCCESSFUL ISSUE REQUEST!!");
+                    return res.redirect("/userHome");
                   }
                 }
               );
@@ -278,7 +353,7 @@ app.post("/requestBook", authenticateUser, (req, res, next) => {
 
 app.post("/returnBook", authenticateUser, async (req, res, next) => {
   let bookId = req.body.bookId;
-  let userId = req.body.userId;
+  let userId = req.userId;
 
   db.query(
     `SELECT * FROM books WHERE bookId= ${db.escape(bookId)}`,
@@ -302,7 +377,7 @@ app.post("/returnBook", authenticateUser, async (req, res, next) => {
                 (error, result) => {
                   if (error) throw error;
                   else {
-                    return res.send("SUCCESSFUL RETURN REQUEST!!");
+                    return res.redirect("/userRequests");
                   }
                 }
               );
@@ -314,7 +389,68 @@ app.post("/returnBook", authenticateUser, async (req, res, next) => {
   );
 });
 
-app.post("/appoveRequest", authenticateAdmin, async (req, res, next) => {
+app.get("/adminRequests", authenticateAdmin, (req, res, next) => {
+  var approveRequest = [];
+  var issued = [];
+  var returnRequest = [];
+
+  db.query(
+    `SELECT * FROM requests where state= 'requested';`,
+    (err, result, field) => {
+      approveRequest = result;
+      db.query(
+        `SELECT * FROM requests where state= 'issued';`,
+        (err, result, field) => {
+          issued = result;
+          db.query(
+            `SELECT * FROM requests where state= 'checkedIn';`,
+            (err, result, field) => {
+              returnRequest = result;
+              res.render("pages/adminRequests", {
+                approveRequest: approveRequest,
+                issued: issued,
+                returnRequest: returnRequest,
+              });
+            }
+          );
+        }
+      );
+    }
+  );
+});
+
+app.get("/userRequests", authenticateUser, (req, res, next) => {
+  var approveRequest = [];
+  var issued = [];
+  var returnRequest = [];
+  var userId = req.userId;
+
+  db.query(
+    `SELECT * FROM requests where state= 'requested' and userId=${userId};`,
+    (err, result, field) => {
+      approveRequest = result;
+      db.query(
+        `SELECT * FROM requests where state= 'issued' and userId=${userId};`,
+        (err, result, field) => {
+          issued = result;
+          db.query(
+            `SELECT * FROM requests where state= 'checkedIn' and userId=${userId};`,
+            (err, result, field) => {
+              returnRequest = result;
+              res.render("pages/userRequests", {
+                approveRequest: approveRequest,
+                issued: issued,
+                returnRequest: returnRequest,
+              });
+            }
+          );
+        }
+      );
+    }
+  );
+});
+
+app.post("/approveRequest", authenticateAdmin, async (req, res, next) => {
   let requestId = parseInt(req.body.requestId);
 
   db.query(
@@ -337,7 +473,8 @@ app.post("/appoveRequest", authenticateAdmin, async (req, res, next) => {
               db.query(
                 `UPDATE books SET available = available -1 WHERE bookId = ${bookId}`
               );
-              return res.send("ISSUE REQUEST APPROVED BY ADMIN!!");
+              // return res.send("ISSUE REQUEST APPROVED BY ADMIN!!");
+              return res.redirect("/adminRequests");
             }
           }
         );
@@ -357,7 +494,6 @@ app.post("/rejectRequest", authenticateAdmin, async (req, res, next) => {
       if (error) throw error;
       else if (result.length === 0) return res.send("INVALID REQUEST!!");
       else {
-        // var bookId= result[0].bookId;
 
         db.query(
           `DELETE FROM requests WHERE requestId= ${db.escape(
@@ -367,7 +503,8 @@ app.post("/rejectRequest", authenticateAdmin, async (req, res, next) => {
             if (error || !result) throw error;
             else {
               // db.query(`UPDATE books SET available = available -1 WHERE bookId = ${bookId}`);
-              return res.send("ISSUE REQUEST REJECTED BY ADMIN!!");
+              // return res.send("ISSUE REQUEST REJECTED BY ADMIN!!");
+              return res.redirect("/adminRequests");
             }
           }
         );
@@ -376,7 +513,7 @@ app.post("/rejectRequest", authenticateAdmin, async (req, res, next) => {
   );
 });
 
-app.post("/appoveReturn", authenticateAdmin, async (req, res, next) => {
+app.post("/approveReturn", authenticateAdmin, async (req, res, next) => {
   let requestId = parseInt(req.body.requestId);
 
   db.query(
@@ -399,7 +536,8 @@ app.post("/appoveReturn", authenticateAdmin, async (req, res, next) => {
               db.query(
                 `UPDATE books SET available = available + 1 WHERE bookId = ${bookId}`
               );
-              return res.send("RETURN REQUEST APPROVED BY ADMIN!!");
+              // return res.send("RETURN REQUEST APPROVED BY ADMIN!!");
+              return res.redirect("/adminRequests");
             }
           }
         );
@@ -426,7 +564,8 @@ app.post("/rejectReturn", authenticateAdmin, async (req, res, next) => {
           (error, result) => {
             if (error || !result) throw error;
             else {
-              return res.send("RETURN REQUEST REJECTED BY ADMIN!!");
+              // return res.send("RETURN REQUEST REJECTED BY ADMIN!!");
+              return res.redirect("/adminRequests");
             }
           }
         );

@@ -1,0 +1,61 @@
+<%- include('../template/head')-%>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<body class="text-center">
+    <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
+        <main role="main" class="inner cover">
+            <div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Book Id</th>
+                      <th>Title</th>
+                      <th>Total Quantity</th>
+                      <th>Available Quantity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <%books.forEach(function(entry) {%>
+                    <tr>
+                      <td><%=entry.bookId%></td>
+                      <td><%=entry.title%></td>
+                      <td><%=entry.totalQuantity%></td>
+                      <td><%=entry.available%></td>
+                      <form action="http://localhost:5000/removeBook" method="POST">
+                        <td>
+                            <label for="quantity">Quantity</label>
+                    <input name="quantity" id="quantity" />
+                    <input type="hidden" name="title" id="title" value="<%=entry.title%>" >
+                        </td>
+                        <td>
+                            <button id=<%=entry.title%>
+                            > Delete
+                            </button>
+                        </td>
+                    </form>
+                    </tr>
+                    <%});%>
+                  </tbody>
+                </table>
+              </div>
+              
+            <form action="http://localhost:5000/newBook" method="POST">
+                <div>
+                    <label for="title">Book Title</label>
+                    <input name="title" id="title" />
+                  </div>
+                  <div>
+                    <label for="quantity">Quantity</label>
+                    <input name="quantity" id="quantity" />
+                  </div>
+                <button>Add Book</button>
+            </form>
+        </main>
+    </div>
+</body>
+<script>
+    window.onload = function() {
+        var action="admin";
+        document.getElementById('home').classList.add('active');
+      };
+</script>
+</html>

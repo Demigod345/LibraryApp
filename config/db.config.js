@@ -5,7 +5,7 @@ dotenv.config();
 const dbConn = mysql.createConnection({
     host     : 'localhost',
     user     : 'root',
-    password : process.env.MYSQL_PASSWORD ,
+    password : 'abcd' ,
     database : 'backend_assign'
 });
 
