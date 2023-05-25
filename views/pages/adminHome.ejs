@@ -1,61 +1,147 @@
-<%- include('../template/head')-%>
-<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-<body class="text-center">
-    <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
-        <main role="main" class="inner cover">
-            <div>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Book Id</th>
-                      <th>Title</th>
-                      <th>Total Quantity</th>
-                      <th>Available Quantity</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <%books.forEach(function(entry) {%>
-                    <tr>
-                      <td><%=entry.bookId%></td>
-                      <td><%=entry.title%></td>
-                      <td><%=entry.totalQuantity%></td>
-                      <td><%=entry.available%></td>
-                      <form action="http://localhost:5000/removeBook" method="POST">
-                        <td>
-                            <label for="quantity">Quantity</label>
-                    <input name="quantity" id="quantity" />
-                    <input type="hidden" name="title" id="title" value="<%=entry.title%>" >
-                        </td>
-                        <td>
-                            <button id=<%=entry.title%>
-                            > Delete
-                            </button>
-                        </td>
-                    </form>
-                    </tr>
-                    <%});%>
-                  </tbody>
-                </table>
-              </div>
-              
-            <form action="http://localhost:5000/newBook" method="POST">
-                <div>
-                    <label for="title">Book Title</label>
-                    <input name="title" id="title" />
-                  </div>
-                  <div>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <title>LibraryApp</title>
+  <meta name="theme-color" content="#563d7c" />
+
+  <style>
+    .bg-image-vertical {
+      position: relative;
+      overflow: hidden;
+      background-repeat: no-repeat;
+      background-position: right center;
+      background-size: auto 100%;
+    }
+
+    @media (min-width: 1025px) {
+      .h-custom-2 {
+        height: 100%;
+      }
+    }
+  </style>
+  <!-- Bootstrap core CSS -->
+  <link href="css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Custom styles for this template -->
+  <!-- <link href="/cover.css" rel="stylesheet" /> -->
+</head>
+
+<body>
+  <!-- Navbar-->
+  <header>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <div class="container-fluid justify-content-between">
+        <!-- Left elements -->
+        <div class="d-flex">
+          <!-- Brand -->
+          <a class="navbar-brand me-2 mb-1 d-flex align-items-center" href="#">
+            <img src="logo.svg" height="20" alt="MDB Logo" loading="lazy" style="margin-top: 2px" />
+          </a>
+        </div>
+        <!-- Left elements -->
+
+        <!-- Center elements -->
+        <ul class="navbar-nav flex-row d-none d-md-flex">
+          <li class="nav-item me-3 me-lg-1 active">
+            <a class="nav-link" href="/adminHome">
+              <span>Books Panel</span>
+            </a>
+          </li>
+
+          <li class="nav-item me-3 me-lg-1">
+            <a class="nav-link" href="/adminRequests">
+              <span>Request Panel</span>
+            </a>
+          </li>
+        </ul>
+        <!-- Center elements -->
+
+        <!-- Right elements -->
+        <ul class="navbar-nav flex-row">
+          <li class="nav-item me-3 me-lg-1">
+            <a class="nav-link d-sm-flex align-items-sm-center" href="#">
+              <strong class="d-none d-sm-block ms-1">Hi <%=username%>(<%=client%>)</strong>
+            </a>
+          </li>
+        </ul>
+        <!-- Right elements -->
+      </div>
+    </nav>
+  </header>
+  <!-- Navbar -->
+
+  <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
+    <main role="main" class="inner cover">
+      <div>
+        <h5 class="fw-normal mb-3 pb-3" style="letter-spacing: 1px; text-align: center">
+          Browse Available Books in the Library
+        </h5>
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Book Id</th>
+              <th>Title</th>
+              <th>Total Quantity</th>
+              <th>Available Quantity</th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <%books.forEach(function(entry) {%>
+              <tr>
+                <td>
+                  <%=entry.bookId%>
+                </td>
+                <td>
+                  <%=entry.title%>
+                </td>
+                <td>
+                  <%=entry.totalQuantity%>
+                </td>
+                <td>
+                  <%=entry.available%>
+                </td>
+                <form action="http://localhost:5000/removeBook" method="POST">
+                  <td>
                     <label for="quantity">Quantity</label>
                     <input name="quantity" id="quantity" />
-                  </div>
-                <button>Add Book</button>
-            </form>
-        </main>
-    </div>
+                    <input type="hidden" name="title" id="title" value="<%=entry.title%>" />
+                  </td>
+                  <td>
+                    <button id=<%=entry.title%>> Delete</button>
+                  </td>
+                </form>
+              </tr>
+              <%});%>
+          </tbody>
+        </table>
+      </div>
+      <div style="letter-spacing: 1px; text-align: center">
+        <h5 class="fw-normal mb-3 pb-3" style="letter-spacing: 1px; text-align: center">
+          Add new Books to the Library
+        </h5>
+        <form action="http://localhost:5000/newBook" method="POST">
+          <div>
+            <label for="title">Book Title</label>
+            <input name="title" id="title" />
+          </div>
+          <div>
+            <label for="quantity">Quantity</label>
+            <input name="quantity" id="quantity" />
+          </div>
+          <button>Add Book</button>
+        </form>
+      </div>
+    </main>
+  </div>
 </body>
 <script>
-    window.onload = function() {
-        var action="admin";
-        document.getElementById('home').classList.add('active');
-      };
+  window.onload = function () {
+    document.getElementById("home").classList.add("active");
+  };
 </script>
+
 </html>
