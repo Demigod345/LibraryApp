@@ -67,11 +67,9 @@ function authenticateAdmin(req, res, next) {
 
 
 app.get("/", (req, res, next) => {
-  var books = [];
-  db.query(`SELECT * FROM books  ;`, (err, result, field) => {
-    books = result;
-    res.render("pages/newLogin", { books: books });
-  });
+ 
+    res.render("pages/login");
+
 });
 
 app.post("/", (req, res) => {
