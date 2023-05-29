@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <title>LibraryApp</title>
     <meta name="theme-color" content="#563d7c" />
+    <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css"> -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
 
     <style>
         .bg-image-vertical {
@@ -77,6 +80,13 @@
                             <strong class="d-none d-sm-block ms-1">Hi <%=username%>(<%=client%>)</strong>
                         </a>
                     </li>
+
+                    <form action="http://localhost:5000/logout" method="POST">
+                        <input>
+                        <button type="submit" class="btn btn-default btn-outline-dark">
+                            Log out
+                        </button>
+                    </form>
                 </ul>
                 <!-- Right elements -->
             </div>
@@ -89,9 +99,9 @@
             <div>
                 <h5 class="fw-normal mb-3 pb-3" style="letter-spacing: 1px; text-align: center;">
                     Browse Available Books in the Library
-                  </h5>
+                </h5>
                 <table class="table table-hover ">
-                    
+
                     <thead>
                         <tr>
                             <th>Book Id</th>
@@ -117,7 +127,7 @@
                                 <form method="POST" action="http://localhost:5000/requestBook">
                                     <td>
                                         <input name="bookId" type="hidden" value=<%=entry.bookId%> />
-                                        
+
                                         <button id=<%=entry.title%>> Request Book</button>
                                     </td>
                                 </form>
@@ -125,6 +135,16 @@
                             <%});%>
                     </tbody>
                 </table>
+
+            </div>
+            <div  style="text-align: center;">
+                <form method="POST" action="http://localhost:5000/requestAdmin">
+                    <input type="hidden" name="bookId" id="bookId" value= -1
+                    >
+                    <button class="btn btn-outline-success btn-lg">
+                        Request For Admin Privileges
+                    </button>
+                </form>
             </div>
         </main>
     </div>

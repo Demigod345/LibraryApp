@@ -87,7 +87,7 @@ app.get("/adminHome", authenticateAdmin, (req, res, next) => {
     client = "admin";
   }
 
-  db.query(`SELECT * FROM books  ;`, (err, result, field) => {
+  db.query(`SELECT * FROM books where bookId > 0 ;`, (err, result, field) => {
     books = result;
     res.render("pages/adminHome", {
       books: books,
@@ -103,7 +103,7 @@ app.get("/userHome", authenticateUser, (req, res, next) => {
   if (req.isAdmin) {
     client = "admin";
   }
-  db.query(`SELECT * FROM books  ;`, (err, result, field) => {
+  db.query(`SELECT * FROM books  where bookId > 0 ;`, (err, result, field) => {
     books = result;
     res.render("pages/userHome", {
       books: books,
@@ -117,6 +117,9 @@ app.get("/adminRequests", authenticateAdmin, (req, res, next) => {
   var approveRequest = [];
   var issued = [];
   var returnRequest = [];
+  var adminRequest = [];
+  var userId = req.userId;
+  console.log(userId);
 
   let client = "user";
   if (req.isAdmin) {
@@ -124,24 +127,37 @@ app.get("/adminRequests", authenticateAdmin, (req, res, next) => {
   }
 
   db.query(
-    `SELECT * FROM requests where state= 'requested';`,
+    `SELECT * FROM requests where state= 'requested' ;`,
     (err, result, field) => {
       approveRequest = result;
+      console.log(result);
       db.query(
-        `SELECT * FROM requests where state= 'issued';`,
+        `SELECT * FROM requests where state= 'issued' ;`,
         (err, result, field) => {
           issued = result;
           db.query(
-            `SELECT * FROM requests where state= 'checkedIn';`,
+            `SELECT * FROM requests where state= 'checkedIn' ;`,
             (err, result, field) => {
               returnRequest = result;
-              res.render("pages/adminRequests", {
-                approveRequest: approveRequest,
-                issued: issued,
-                returnRequest: returnRequest,
-                username: req.username,
-                client: client,
-              });
+              db.query(
+                `SELECT * FROM requests where state= 'AdminRequest' ;`,
+                (err, result, field) => {
+                  adminRequest = result;
+                  console.log(approveRequest);
+                  console.log(issued);
+                  console.log(returnRequest);
+                  console.log(adminRequest);
+
+                  res.render("pages/adminRequests", {
+                    approveRequest: approveRequest,
+                    issued: issued,
+                    returnRequest: returnRequest,
+                    username: req.username,
+                    adminRequest: adminRequest,
+                    client: client,
+                  });
+                }
+              );
             }
           );
         }
@@ -154,6 +170,7 @@ app.get("/userRequests", authenticateUser, (req, res, next) => {
   var approveRequest = [];
   var issued = [];
   var returnRequest = [];
+  var adminRequest = [];
   var userId = req.userId;
 
   let client = "user";
@@ -173,13 +190,20 @@ app.get("/userRequests", authenticateUser, (req, res, next) => {
             `SELECT * FROM requests where state= 'checkedIn' and userId=${userId};`,
             (err, result, field) => {
               returnRequest = result;
-              res.render("pages/userRequests", {
-                approveRequest: approveRequest,
-                issued: issued,
-                returnRequest: returnRequest,
-                username: req.username,
-                client: client,
-              });
+              db.query(
+                `SELECT * FROM requests where state= 'AdminRequest' and userId=${userId};`,
+                (err, result, field) => {
+                  adminRequest = result;
+                  res.render("pages/userRequests", {
+                    approveRequest: approveRequest,
+                    issued: issued,
+                    returnRequest: returnRequest,
+                    username: req.username,
+                    adminRequest: adminRequest,
+                    client: client,
+                  });
+                }
+              );
             }
           );
         }
@@ -187,7 +211,6 @@ app.get("/userRequests", authenticateUser, (req, res, next) => {
     }
   );
 });
-
 app.post("/", (req, res) => {
   message = req.body.message;
 });
@@ -241,7 +264,6 @@ app.post("/login", async (req, res) => {
     async (err, result, field) => {
       if (err) throw err;
       else if (result.length == 0) {
-
         res.redirect("/login");
       } else {
         let userId = result[0].userId;
@@ -279,6 +301,16 @@ app.post("/login", async (req, res) => {
   );
 });
 
+app.post("/logout", (req, res) => {
+  res
+    .cookie("token", "", {
+      secure: true,
+      httpOnly: true,
+      sameSite: "strict",
+    })
+    .redirect("/login");
+});
+
 app.post("/newBook", authenticateAdmin, (req, res, next) => {
   let title = req.body.title;
   let quantity = parseInt(req.body.quantity);
@@ -290,7 +322,6 @@ app.post("/newBook", authenticateAdmin, (req, res, next) => {
         if (err) throw err;
 
         if (result[0] !== undefined) {
-
           let newTotalQuantity = quantity + result[0].totalQuantity;
           let newAvailable = quantity + result[0].available;
           db.query(`UPDATE books 
@@ -299,7 +330,6 @@ app.post("/newBook", authenticateAdmin, (req, res, next) => {
             WHERE title= ${db.escape(title)};`);
 
           if (!err) {
-
             res.redirect("/adminHome");
           }
         } else {
@@ -310,11 +340,13 @@ app.post("/newBook", authenticateAdmin, (req, res, next) => {
 
           if (!err) {
             res.redirect("/adminHome");
-
           }
         }
       }
     );
+  } else {
+    // feedback for invalid quantity
+    res.redirect("/adminHome");
   }
 });
 
@@ -359,8 +391,10 @@ app.post("/removeBook", authenticateAdmin, (req, res, next) => {
         }
       }
     );
+  } else {
+    // feedback for invalid quantity
+    res.redirect("/adminHome");
   }
-
 });
 
 app.post("/requestBook", authenticateUser, (req, res, next) => {
@@ -567,6 +601,89 @@ app.post("/rejectReturn", authenticateAdmin, async (req, res, next) => {
             }
           }
         );
+      }
+    }
+  );
+});
+
+app.post("/requestAdmin", authenticateUser, (req, res) => {
+  var bookId = req.body.bookId;
+  var userId = req.userId;
+
+  if (bookId == -1) {
+    db.query(
+      `INSERT into requests (bookId, userId, state) VALUES (-1, ${userId}, 'AdminRequest'); `
+    );
+  } else {
+    //handle invalid request
+  }
+});
+
+app.post("/approveAdmin", authenticateAdmin, async (req, res, next) => {
+  var requestId = req.body.requestId;
+  var userId = req.body.userId;
+
+  db.query(
+    `SELECT * FROM requests WHERE requestId = ${db.escape(
+      requestId
+    )} AND state = 'AdminRequest';`,
+    (error, result) => {
+      if (error) throw error;
+      else if (result.length === 0) return res.send("INVALID REQUEST!!");
+      else {
+        var bookId = result[0].bookId;
+        if (bookId === -1) {
+          db.query(
+            `DELETE FROM requests WHERE requestId= ${db.escape(
+              requestId
+            )} AND state = 'AdminRequest';`,
+            (error, result) => {
+              if (error || !result) throw error;
+              else {
+                db.query(`UPDATE users SET isAdmin = 1 WHERE userId = ${userId}`);
+                return res.redirect("/adminRequests");
+              }
+            }
+          );
+        } else {
+          //handle invalid request.
+          return res.redirect("/adminRequests");
+        }
+      }
+    }
+  );
+});
+
+app.post("/rejectAdmin", authenticateAdmin, async (req, res, next) => {
+  var requestId = req.body.requestId;
+  var userId = req.userId;
+
+  db.query(
+    `SELECT * FROM requests WHERE requestId = ${db.escape(
+      requestId
+    )} AND state = 'AdminRequest';`,
+    (error, result) => {
+      if (error) throw error;
+      else if (result.length === 0) return res.send("INVALID REQUEST!!");
+      else {
+        var bookId = result[0].bookId;
+        if (bookId === -1) {
+          db.query(
+            `DELETE FROM requests WHERE requestId= ${db.escape(
+              requestId
+            )} AND state = 'AdminRequest';`,
+            (error, result) => {
+              if (error || !result) throw error;
+              else {
+                // handle valid  response
+                return res.redirect("/adminRequests");
+              }
+            }
+          );
+        } else {
+          //handle invalid request.
+          return res.redirect("/adminRequests");
+        }
       }
     }
   );
