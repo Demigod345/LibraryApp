@@ -57,9 +57,18 @@
                 <h3 class="fw-normal mb-3 pb-3" style="letter-spacing: 1px">
                   Sign Up
                 </h3>
-
+                <div class="container">
+                  <% if(message.length>0){ %>
+                    <div class="alert alert-primary alert-dismissible">
+                      <span class="close" onclick="this.parentElement.style.display='none';">&times;</span>
+                      <strong>
+                        <%= message%>
+                      </strong>
+                    </div>
+                    <% } %>
+                </div>
                 <div class="form-outline mb-4">
-                  <input
+                  <input required
                     type="text"
                     id="username"
                     name="username"
@@ -69,7 +78,7 @@
                 </div>
 
                 <div class="form-outline mb-4">
-                  <input
+                  <input required
                     type="password"
                     id="password"
                     name="password"
@@ -79,7 +88,7 @@
                 </div>
 
                 <div class="form-outline mb-4">
-                    <input
+                    <input required
                       type="password"
                       id="passwordC"
                       name="passwordC"
