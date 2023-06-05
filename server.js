@@ -268,7 +268,7 @@ app.post("/signUp", async (req, res, next) => {
         if (err) throw err;
         else {
           if (result[0] === undefined) {
-            if (username && password === passwordC) {
+            if (username && password && passwordC) {
               db.query(
                 `INSERT INTO users (userName, salt, hash, isAdmin) VALUES(${db.escape(
                   username
@@ -277,7 +277,7 @@ app.post("/signUp", async (req, res, next) => {
               req.flash("message", "Successfully Registered.");
               res.redirect("/login");
             } else {
-              req.flash("message", "Username can't be empty.");
+              req.flash("message", "Username or Password can't be empty.");
               res.redirect("/signUp");
             }
           } else {
@@ -303,7 +303,7 @@ app.post("/login", async (req, res) => {
       else if (result.length == 0) {
         req.flash("message", "User not registered.");
         res.redirect("/login");
-      } else {
+      } else if (username && password) {
         let userId = result[0].userId;
         let hash = await bcrypt.hash(password, result[0].salt);
         let isAdmin = result[0].isAdmin;
@@ -341,6 +341,9 @@ app.post("/login", async (req, res) => {
           req.flash("message", "Wrong Password");
           res.redirect("/login");
         }
+      } else {
+        req.flash("message", "Username or Password can't be empty.");
+        res.redirect("/login");
       }
     }
   );
@@ -414,6 +417,7 @@ app.post("/removeBook", authenticateAdmin, (req, res, next) => {
         if (result[0] !== undefined) {
           let newTotalQuantity = result[0].totalQuantity - quantity;
           let newAvailable = result[0].available - quantity;
+          let bookId = result[0].bookId;
 
           if (
             quantity <= result[0].available &&
@@ -430,10 +434,23 @@ app.post("/removeBook", authenticateAdmin, (req, res, next) => {
             newAvailable == newTotalQuantity &&
             newTotalQuantity == 0
           ) {
-            db.query(`DELETE from books 
-                WHERE title= ${db.escape(title)};`);
-            req.flash("message", "Book deleted.");
-            res.redirect("/adminHome");
+            db.query(
+              `SELECT * FROM requests where bookId=${bookId}`,
+              (err, result) => {
+                if (result[0] == undefined) {
+                  db.query(`DELETE from books 
+                  WHERE title= ${db.escape(title)};`);
+                  req.flash("message", "Book deleted.");
+                  res.redirect("/adminHome");
+                } else {
+                  req.flash(
+                    "message",
+                    "Book can't be deleted as there are pending requests."
+                  );
+                  res.redirect("/adminHome");
+                }
+              }
+            );
           } else {
             req.flash("message", "Invalid Quantity.");
             res.redirect("/adminHome");
