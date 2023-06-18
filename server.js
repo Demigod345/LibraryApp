@@ -11,7 +11,7 @@ const cookieParser = require("cookie-parser");
 
 dotenv.config();
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT ;
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cookieParser());
@@ -34,10 +34,12 @@ async function hashPassword(password) {
 function authenticateUser(req, res, next) {
   const token = req.cookies.token;
   let tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
-  let jwtSecretKey = process.env.JWT_SECRET_KEY || "superdupersecurekey";
+  let jwtSecretKey = process.env.JWT_SECRET_KEY;
   const verified = jwt.verify(token, jwtSecretKey);
   console.log(verified);
   req.userId = verified.userId;
+  req.username= verified.username;
+  req.isAdmin=verified.isAdmin;
 
   if (verified && !verified.isAdmin) {
     next();
@@ -49,8 +51,11 @@ function authenticateUser(req, res, next) {
 function authenticateAdmin(req, res, next) {
   const token = req.cookies.token;
   let tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
-  let jwtSecretKey = process.env.JWT_SECRET_KEY || "superdupersecurekey";
+  let jwtSecretKey = process.env.JWT_SECRET_KEY ;
   const verified = jwt.verify(token, jwtSecretKey);
+  req.userId = verified.userId;
+  req.username= verified.username;
+  req.isAdmin=verified.isAdmin;
   console.log(verified);
 
   if (verified && verified.isAdmin) {
@@ -60,40 +65,19 @@ function authenticateAdmin(req, res, next) {
   }
 }
 
-app.get("/valToken", (req, res) => {
-  // Tokens are generally passed in the header of the request
-  // Due to security reasons.
-
-  let tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
-  let jwtSecretKey = process.env.JWT_SECRET_KEY || "superdupersecurekey";
-
-  try {
-    const token = req.header(tokenHeaderKey);
-    const verified = jwt.verify(token, jwtSecretKey);
-    console.log(verified);
-
-    if (verified) {
-      return res.send("Successfully Verified!");
-    } else {
-      return res.status(401).send(error);
-    }
-  } catch (error) {
-    return res.status(401).send(error);
-  }
-});
 
 app.get("/", (req, res, next) => {
   var books = [];
   db.query(`SELECT * FROM books  ;`, (err, result, field) => {
     books = result;
-    res.render("pages/home", { books: books });
+    res.render("pages/newLogin", { books: books });
   });
 });
 
 app.post("/", (req, res) => {
   message = req.body.message;
   // console.log(message);
-  console.log(req.cookies.token);
+  console.log(req);
 });
 
 app.listen(port, (error) => {
@@ -180,7 +164,7 @@ app.post("/login", async (req, res) => {
           console.log(`${username} logged in!`);
           // res.send("Successful Login Attempt");
           let jwtSecretKey =
-            process.env.JWT_SECRET_KEY || "superdupersecurekey";
+            process.env.JWT_SECRET_KEY ;
           let data = {
             time: Date(),
             userId: userId,
@@ -213,17 +197,27 @@ app.post("/login", async (req, res) => {
 
 app.get("/adminHome", authenticateAdmin, (req, res, next) => {
   var books = [];
+
+  let client='user'
+  if(req.isAdmin){
+    client='admin';
+  }
+
   db.query(`SELECT * FROM books  ;`, (err, result, field) => {
     books = result;
-    res.render("pages/adminHome", { books: books });
+    res.render("pages/adminHome", { books: books , username: req.username, client: client});
   });
 });
 
 app.get("/userHome", authenticateUser, (req, res, next) => {
   var books = [];
+  let client='user'
+  if(req.isAdmin){
+    client='admin';
+  }
   db.query(`SELECT * FROM books  ;`, (err, result, field) => {
     books = result;
-    res.render("pages/userHome", { books: books });
+    res.render("pages/userHome", { books: books , username: req.username, client:client});
   });
 });
 
@@ -394,6 +388,11 @@ app.get("/adminRequests", authenticateAdmin, (req, res, next) => {
   var issued = [];
   var returnRequest = [];
 
+  let client='user'
+  if(req.isAdmin){
+    client='admin';
+  }
+
   db.query(
     `SELECT * FROM requests where state= 'requested';`,
     (err, result, field) => {
@@ -409,7 +408,9 @@ app.get("/adminRequests", authenticateAdmin, (req, res, next) => {
               res.render("pages/adminRequests", {
                 approveRequest: approveRequest,
                 issued: issued,
-                returnRequest: returnRequest,
+                returnRequest: returnRequest
+                , username: req.username,
+                client:client
               });
             }
           );
@@ -424,6 +425,11 @@ app.get("/userRequests", authenticateUser, (req, res, next) => {
   var issued = [];
   var returnRequest = [];
   var userId = req.userId;
+
+  let client='user'
+  if(req.isAdmin){
+    client='admin';
+  }
 
   db.query(
     `SELECT * FROM requests where state= 'requested' and userId=${userId};`,
@@ -440,7 +446,7 @@ app.get("/userRequests", authenticateUser, (req, res, next) => {
               res.render("pages/userRequests", {
                 approveRequest: approveRequest,
                 issued: issued,
-                returnRequest: returnRequest,
+                returnRequest: returnRequest, username: req.username, client:client
               });
             }
           );

@@ -1,131 +1,249 @@
-<%- include('../template/head')-%>
+<!DOCTYPE html>
+<html lang="en">
 
-<body class="text-center">
-    <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
-        <main role="main" class="inner cover">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <title>LibraryApp</title>
+  <meta name="theme-color" content="#563d7c" />
 
-            <div>
-                <h1>Approve Requests</h1>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Request Id</th>
-                      <th>Book Id</th>
-                      <th>User Id</th>
-                      <th>State</th>
-                      <th>Created At</th>
-                      <th>Updated At</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <%approveRequest.forEach(function(entry) {%>
-                    <tr>
-                      <td><%=entry.requestId%></td>
-                      <td><%=entry.bookId%></td>
-                      <td><%=entry.userId%></td>
-                      <td><%=entry.state%></td>
-                      <td><%=entry.createdAt%></td>
-                      <td><%=entry.updatedAt%></td>
-                      <form action="http://localhost:5000/approveRequest" method="POST">
-                        <td>
-                          <button id=1
-                            > Approve
-                          </button>
-                          <input type="hidden" name="requestId" id="requestId" value=<%=entry.requestId%> >
-                        </td>
-                      </form>
-                      <form action="http://localhost:5000/rejectRequest" method="POST">
-                        <td>
-                          <button id=1
-                            > Reject
-                          </button>
-                          <input type="hidden" name="requestId" id="requestId" value=<%=entry.requestId%> >
-                        </td>
-                      </form>
-                    </tr>
-                    <%});%>
-                  </tbody>
-                </table>
-              </div>
+  <style>
+    .bg-image-vertical {
+      position: relative;
+      overflow: hidden;
+      background-repeat: no-repeat;
+      background-position: right center;
+      background-size: auto 100%;
+    }
 
-            <div>
-                <h1>Issued Books</h1>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Request Id</th>
-                      <th>Book Id</th>
-                      <th>User Id</th>
-                      <th>State</th>
-                      <th>Created At</th>
-                      <th>Updated At</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <%issued.forEach(function(entry) {%>
-                    <tr>
-                      <td><%=entry.requestId%></td>
-                      <td><%=entry.bookId%></td>
-                      <td><%=entry.userId%></td>
-                      <td><%=entry.state%></td>
-                      <td><%=entry.createdAt%></td>
-                      <td><%=entry.updatedAt%></td>
-                    </tr>
-                    <%});%>
-                  </tbody>
-                </table>
-              </div> 
-              
-              <div>
-                <h1>Return Requests</h1>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Request Id</th>
-                      <th>Book Id</th>
-                      <th>User Id</th>
-                      <th>State</th>
-                      <th>Created At</th>
-                      <th>Updated At</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <%returnRequest.forEach(function(entry) {%>
-                    <tr>
-                      <td><%=entry.requestId%></td>
-                      <td><%=entry.bookId%></td>
-                      <td><%=entry.userId%></td>
-                      <td><%=entry.state%></td>
-                      <td><%=entry.createdAt%></td>
-                      <td><%=entry.updatedAt%></td>
-                      <form action="http://localhost:5000/approveReturn" method="POST">
-                        <td>
-                          <button id=1
-                            > Approve
-                          </button>
-                          <input type="hidden" name="requestId" id="requestId" value=<%=entry.requestId%> >
-                        </td>
-                      </form>
-                      <form action="http://localhost:5000/rejectReturn" method="POST">
-                        <td>
-                          <button id=1
-                            > Reject
-                          </button>
-                          <input type="hidden" name="requestId" id="requestId" value=<%=entry.requestId%> >
-                        </td>
-                      </form>
-                    </tr>
-                    <%});%>
-                  </tbody>
-                </table>
-              </div>         
+    @media (min-width: 1025px) {
+      .h-custom-2 {
+        height: 100%;
+      }
+    }
+  </style>
+  <!-- Bootstrap core CSS -->
+  <link href="css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Custom styles for this template -->
+  <!-- <link href="/cover.css" rel="stylesheet" /> -->
+</head>
 
-        </main>
-    </div>
+<body>
+  <!-- Navbar-->
+  <header>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <div class="container-fluid justify-content-between">
+        <!-- Left elements -->
+        <div class="d-flex">
+          <!-- Brand -->
+          <a class="navbar-brand me-2 mb-1 d-flex align-items-center" href="#">
+            <img src="logo.svg" height="20" alt="MDB Logo" loading="lazy" style="margin-top: 2px" />
+          </a>
+        </div>
+        <!-- Left elements -->
+
+        <!-- Center elements -->
+        <ul class="navbar-nav flex-row d-none d-md-flex">
+          <li class="nav-item me-3 me-lg-1 ">
+            <a class="nav-link" href="/adminHome">
+              <span>Books Panel</span>
+            </a>
+          </li>
+
+          <li class="nav-item me-3 me-lg-1 active">
+            <a class="nav-link" href="/adminRequests">
+              <span>Request Panel</span>
+            </a>
+          </li>
+        </ul>
+        <!-- Center elements -->
+
+        <!-- Right elements -->
+        <ul class="navbar-nav flex-row">
+          <li class="nav-item me-3 me-lg-1">
+            <a class="nav-link d-sm-flex align-items-sm-center" href="#">
+              <strong class="d-none d-sm-block ms-1">Hi <%=username%>(<%=client%>)</strong>
+            </a>
+          </li>
+        </ul>
+        <!-- Right elements -->
+      </div>
+    </nav>
+  </header>
+  <!-- Navbar -->
+
+
+
+
+  <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
+    <main role="main" class="inner cover">
+
+      <div>
+
+        <h5 class="fw-normal mb-3 pb-3" style="letter-spacing: 1px; text-align: center">
+          Approve Requests
+        </h5>
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Request Id</th>
+              <th>Book Id</th>
+              <th>User Id</th>
+              <th>State</th>
+              <th>Created At</th>
+              <th>Updated At</th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <%approveRequest.forEach(function(entry) {%>
+              <tr>
+                <td>
+                  <%=entry.requestId%>
+                </td>
+                <td>
+                  <%=entry.bookId%>
+                </td>
+                <td>
+                  <%=entry.userId%>
+                </td>
+                <td>
+                  <%=entry.state%>
+                </td>
+                <td>
+                  <%=entry.createdAt%>
+                </td>
+                <td>
+                  <%=entry.updatedAt%>
+                </td>
+                <form action="http://localhost:5000/approveRequest" method="POST">
+                  <td>
+                    <button id=1> Approve
+                    </button>
+                    <input type="hidden" name="requestId" id="requestId" value=<%=entry.requestId%> >
+                  </td>
+                </form>
+                <form action="http://localhost:5000/rejectRequest" method="POST">
+                  <td>
+                    <button id=1> Reject
+                    </button>
+                    <input type="hidden" name="requestId" id="requestId" value=<%=entry.requestId%> >
+                  </td>
+                </form>
+              </tr>
+              <%});%>
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+
+        <h5 class="fw-normal mb-3 pb-3" style="letter-spacing: 1px; text-align: center">
+          Issued Books
+        </h5>
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Request Id</th>
+              <th>Book Id</th>
+              <th>User Id</th>
+              <th>State</th>
+              <th>Created At</th>
+              <th>Updated At</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%issued.forEach(function(entry) {%>
+              <tr>
+                <td>
+                  <%=entry.requestId%>
+                </td>
+                <td>
+                  <%=entry.bookId%>
+                </td>
+                <td>
+                  <%=entry.userId%>
+                </td>
+                <td>
+                  <%=entry.state%>
+                </td>
+                <td>
+                  <%=entry.createdAt%>
+                </td>
+                <td>
+                  <%=entry.updatedAt%>
+                </td>
+              </tr>
+              <%});%>
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+
+        <h5 class="fw-normal mb-3 pb-3" style="letter-spacing: 1px; text-align: center">
+          Return Requests
+        </h5>
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Request Id</th>
+              <th>Book Id</th>
+              <th>User Id</th>
+              <th>State</th>
+              <th>Created At</th>
+              <th>Updated At</th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <%returnRequest.forEach(function(entry) {%>
+              <tr>
+                <td>
+                  <%=entry.requestId%>
+                </td>
+                <td>
+                  <%=entry.bookId%>
+                </td>
+                <td>
+                  <%=entry.userId%>
+                </td>
+                <td>
+                  <%=entry.state%>
+                </td>
+                <td>
+                  <%=entry.createdAt%>
+                </td>
+                <td>
+                  <%=entry.updatedAt%>
+                </td>
+                <form action="http://localhost:5000/approveReturn" method="POST">
+                  <td>
+                    <button id=1> Approve
+                    </button>
+                    <input type="hidden" name="requestId" id="requestId" value=<%=entry.requestId%> >
+                  </td>
+                </form>
+                <form action="http://localhost:5000/rejectReturn" method="POST">
+                  <td>
+                    <button id=1> Reject
+                    </button>
+                    <input type="hidden" name="requestId" id="requestId" value=<%=entry.requestId%> >
+                  </td>
+                </form>
+              </tr>
+              <%});%>
+          </tbody>
+        </table>
+      </div>
+
+    </main>
+  </div>
 </body>
 <script>
-    window.onload = function() {
-        document.getElementById('home').classList.add('active');
-      };
+  window.onload = function () {
+    document.getElementById("home").classList.add("active");
+  };
 </script>
-</html>
