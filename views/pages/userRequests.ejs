@@ -80,15 +80,21 @@
         </ul>
         <!-- Center elements -->
   
-        <!-- Right elements -->
-        <ul class="navbar-nav flex-row">
-          <li class="nav-item me-3 me-lg-1">
-            <a class="nav-link d-sm-flex align-items-sm-center" href="#">
-              <strong class="d-none d-sm-block ms-1">Hi <%=username%>(user)</strong>
-            </a>
-          </li>
-        </ul>
-        <!-- Right elements -->
+                <!-- Right elements -->
+                <ul class="navbar-nav flex-row">
+                  <li class="nav-item me-3 me-lg-1">
+                      <a class="nav-link d-sm-flex align-items-sm-center" href="#">
+                          <strong class="d-none d-sm-block ms-1">Hi <%=username%>(<%=client%>)</strong>
+                      </a>
+                  </li>
+                  
+                  <form action="http://localhost:5000/logout" method="POST">
+                      <button type="submit" class="btn btn-default btn-outline-dark">
+                           Log out
+                        </button>                    
+              </form>
+              </ul>
+              <!-- Right elements -->
       </div>
     </nav>
   </header>

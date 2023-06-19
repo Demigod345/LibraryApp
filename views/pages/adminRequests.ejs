@@ -44,7 +44,7 @@
 
         <!-- Center elements -->
         <ul class="navbar-nav flex-row d-none d-md-flex">
-          <li class="nav-item me-3 me-lg-1 ">
+          <li class="nav-item me-3 me-lg-1">
             <a class="nav-link" href="/adminHome">
               <span>Books Panel</span>
             </a>
@@ -65,6 +65,12 @@
               <strong class="d-none d-sm-block ms-1">Hi <%=username%>(<%=client%>)</strong>
             </a>
           </li>
+
+          <form action="http://localhost:5000/logout" method="POST">
+            <button type="submit" class="btn btn-default btn-outline-dark">
+              Log out
+            </button>
+          </form>
         </ul>
         <!-- Right elements -->
       </div>
@@ -72,14 +78,9 @@
   </header>
   <!-- Navbar -->
 
-
-
-
   <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
     <main role="main" class="inner cover">
-
       <div>
-
         <h5 class="fw-normal mb-3 pb-3" style="letter-spacing: 1px; text-align: center">
           Approve Requests
         </h5>
@@ -119,16 +120,16 @@
                 </td>
                 <form action="http://localhost:5000/approveRequest" method="POST">
                   <td>
-                    <button id=1> Approve
-                    </button>
-                    <input type="hidden" name="requestId" id="requestId" value=<%=entry.requestId%> >
+                    <button id="1">Approve</button>
+                    <input type="hidden" name="requestId" id="requestId" value=<%=entry.requestId%>
+                    >
                   </td>
                 </form>
                 <form action="http://localhost:5000/rejectRequest" method="POST">
                   <td>
-                    <button id=1> Reject
-                    </button>
-                    <input type="hidden" name="requestId" id="requestId" value=<%=entry.requestId%> >
+                    <button id="1">Reject</button>
+                    <input type="hidden" name="requestId" id="requestId" value=<%=entry.requestId%>
+                    >
                   </td>
                 </form>
               </tr>
@@ -138,7 +139,6 @@
       </div>
 
       <div>
-
         <h5 class="fw-normal mb-3 pb-3" style="letter-spacing: 1px; text-align: center">
           Issued Books
         </h5>
@@ -181,7 +181,6 @@
       </div>
 
       <div>
-
         <h5 class="fw-normal mb-3 pb-3" style="letter-spacing: 1px; text-align: center">
           Return Requests
         </h5>
@@ -221,16 +220,16 @@
                 </td>
                 <form action="http://localhost:5000/approveReturn" method="POST">
                   <td>
-                    <button id=1> Approve
-                    </button>
-                    <input type="hidden" name="requestId" id="requestId" value=<%=entry.requestId%> >
+                    <button id="1">Approve</button>
+                    <input type="hidden" name="requestId" id="requestId" value=<%=entry.requestId%>
+                    >
                   </td>
                 </form>
                 <form action="http://localhost:5000/rejectReturn" method="POST">
                   <td>
-                    <button id=1> Reject
-                    </button>
-                    <input type="hidden" name="requestId" id="requestId" value=<%=entry.requestId%> >
+                    <button id="1">Reject</button>
+                    <input type="hidden" name="requestId" id="requestId" value=<%=entry.requestId%>
+                    >
                   </td>
                 </form>
               </tr>
@@ -239,6 +238,65 @@
         </table>
       </div>
 
+      <div>
+        <h5 class="fw-normal mb-3 pb-3" style="letter-spacing: 1px; text-align: center">
+          Request for Admin Privileges
+        </h5>
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Request Id</th>
+              <!-- <th>Book Id</th> -->
+              <th>User Id</th>
+              <th>State</th>
+              <th>Created At</th>
+              <th>Updated At</th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <%adminRequest.forEach(function(entry) {%>
+              <tr>
+                <td>
+                  <%=entry.requestId%>
+                </td>
+                <!-- <td><%=entry.bookId%></td> -->
+                <td>
+                  <%=entry.userId%>
+                </td>
+                <td>
+                  <%=entry.state%>
+                </td>
+                <td>
+                  <%=entry.createdAt%>
+                </td>
+                <td>
+                  <%=entry.updatedAt%>
+                </td>
+                <form action="http://localhost:5000/approveAdmin" method="POST">
+                  <td>
+                    <button id="1">Approve</button>
+                    <input type="hidden" name="requestId" id="requestId" value=<%=entry.requestId%>
+                    >
+                    <input type="hidden" name="userId" id="userId" value=<%=entry.userId%>
+                    >
+                  </td>
+                </form>
+                <form action="http://localhost:5000/rejectAdmin" method="POST">
+                  <td>
+                    <button id="1">Reject</button>
+                    <input type="hidden" name="requestId" id="requestId" value=<%=entry.requestId%>
+                    >
+                    <input type="hidden" name="userId" id="userId" value=<%=entry.userId%>
+                    >
+                  </td>
+                </form>
+              </tr>
+              <%});%>
+          </tbody>
+        </table>
+      </div>
     </main>
   </div>
 </body>
@@ -247,3 +305,5 @@
     document.getElementById("home").classList.add("active");
   };
 </script>
+
+</html>
