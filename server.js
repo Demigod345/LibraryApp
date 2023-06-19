@@ -39,11 +39,18 @@ function authenticateUser(req, res, next) {
   req.username = verified.username;
   req.isAdmin = verified.isAdmin;
 
-  if (verified && !verified.isAdmin) {
-    next();
-  } else {
-    res.redirect("/login");
-  }
+  db.query(
+    `SELECT * FROM users where userId=${db.escape(req.userId)};`,
+    (error, result) => {
+      if (result[0].isAdmin === verified.isAdmin) {
+        if (verified && !result[0].isAdmin) {
+          next();
+        }
+      } else {
+        res.redirect("/login");
+      }
+    }
+  );
 }
 
 function authenticateAdmin(req, res, next) {
@@ -55,11 +62,18 @@ function authenticateAdmin(req, res, next) {
   req.username = verified.username;
   req.isAdmin = verified.isAdmin;
 
-  if (verified && verified.isAdmin) {
-    next();
-  } else {
-    res.redirect("/login");
-  }
+  db.query(
+    `SELECT * FROM users where userId=${db.escape(req.userId)};`,
+    (error, result) => {
+      if (result[0].isAdmin === verified.isAdmin) {
+        if (verified && result[0].isAdmin) {
+          next();
+        }
+      } else {
+        res.redirect("/login");
+      }
+    }
+  );
 }
 
 app.listen(port, (error) => {
@@ -612,7 +626,27 @@ app.post("/requestAdmin", authenticateUser, (req, res) => {
 
   if (bookId == -1) {
     db.query(
-      `INSERT into requests (bookId, userId, state) VALUES (-1, ${userId}, 'AdminRequest'); `
+      `SELECT * FROM requests 
+      WHERE bookId= ${db.escape(bookId)} AND userId= ${db.escape(userId)};`,
+      (error, result) => {
+        if (error) throw error;
+        else if (result.length > 0) return res.send("ALREADY REQUESTED!!");
+        else {
+          db.query(
+            `INSERT INTO requests (bookId, userId, state) 
+              VALUES (${db.escape(bookId)}, ${db.escape(
+              userId
+            )}, 'AdminRequest')`,
+            (error, result) => {
+              if (error) throw error;
+              else {
+                // successful Admin Request
+                return res.redirect("/userHome");
+              }
+            }
+          );
+        }
+      }
     );
   } else {
     //handle invalid request
@@ -640,7 +674,9 @@ app.post("/approveAdmin", authenticateAdmin, async (req, res, next) => {
             (error, result) => {
               if (error || !result) throw error;
               else {
-                db.query(`UPDATE users SET isAdmin = 1 WHERE userId = ${userId}`);
+                db.query(
+                  `UPDATE users SET isAdmin = 1 WHERE userId = ${userId}`
+                );
                 return res.redirect("/adminRequests");
               }
             }
