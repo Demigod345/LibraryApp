@@ -96,6 +96,16 @@
 
     <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
         <main role="main" class="inner cover">
+            <div class="container">
+                <% if(message.length>0){ %>
+                  <div class="alert alert-primary alert-dismissible">
+                    <span class="close" onclick="this.parentElement.style.display='none';">&times;</span>
+                    <strong>
+                      <%= message%>
+                    </strong>
+                  </div>
+                  <% } %>
+              </div>
             <div>
                 <h5 class="fw-normal mb-3 pb-3" style="letter-spacing: 1px; text-align: center;">
                     Browse Available Books in the Library

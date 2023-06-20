@@ -7,6 +7,8 @@ const db = require("./config/db.config.js");
 const jwt = require("jsonwebtoken");
 const path = require("path");
 const cookieParser = require("cookie-parser");
+const session = require("express-session");
+const flash = require("express-flash");
 
 dotenv.config();
 const app = express();
@@ -14,10 +16,19 @@ const port = process.env.PORT;
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cookieParser());
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    saveUninitialized: true,
+    resave: true,
+  })
+);
+
+app.use(flash());
+app.use(express.static("./public"));
 
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
-app.use(express.static("./public"));
 
 async function hashPassword(password) {
   const saltRounds = 10;
@@ -47,6 +58,7 @@ function authenticateUser(req, res, next) {
           next();
         }
       } else {
+        req.flash("message", "Invalid Authentication.");
         res.redirect("/login");
       }
     }
@@ -82,15 +94,21 @@ app.listen(port, (error) => {
 });
 
 app.get("/", (req, res, next) => {
-  res.render("pages/login");
+  res.render("pages/login", {
+    message: req.flash("message"),
+  });
 });
 
 app.get("/signUp", (req, res) => {
-  res.render("pages/signUp");
+  res.render("pages/signUp", {
+    message: req.flash("message"),
+  });
 });
 
 app.get("/login", (req, res) => {
-  res.render("pages/login");
+  res.render("pages/login", {
+    message: req.flash("message"),
+  });
 });
 
 app.get("/adminHome", authenticateAdmin, (req, res, next) => {
@@ -107,6 +125,7 @@ app.get("/adminHome", authenticateAdmin, (req, res, next) => {
       books: books,
       username: req.username,
       client: client,
+      message: req.flash("message"),
     });
   });
 });
@@ -123,6 +142,7 @@ app.get("/userHome", authenticateUser, (req, res, next) => {
       books: books,
       username: req.username,
       client: client,
+      message: req.flash("message"),
     });
   });
 });
@@ -169,6 +189,7 @@ app.get("/adminRequests", authenticateAdmin, (req, res, next) => {
                     username: req.username,
                     adminRequest: adminRequest,
                     client: client,
+                    message: req.flash("message"),
                   });
                 }
               );
@@ -215,6 +236,7 @@ app.get("/userRequests", authenticateUser, (req, res, next) => {
                     username: req.username,
                     adminRequest: adminRequest,
                     client: client,
+                    message: req.flash("message"),
                   });
                 }
               );
@@ -235,7 +257,7 @@ app.post("/signUp", async (req, res, next) => {
   let passwordC = req.body.passwordC;
 
   if (password !== passwordC) {
-    res.json({ hey: 12 });
+    req.flash("message", "Passwords don't match!");
     res.redirect("/signUp");
   } else {
     var pass = await hashPassword(password);
@@ -252,13 +274,14 @@ app.post("/signUp", async (req, res, next) => {
                   username
                 )},'${pass.salt}', '${pass.hash}', false);`
               );
+              req.flash("message", "Successfully Registered.");
               res.redirect("/login");
-            } else if (password !== passwordC) {
-              res.redirect("/signUp");
             } else {
+              req.flash("message", "Username can't be empty.");
               res.redirect("/signUp");
             }
           } else {
+            req.flash("message", "User Already Registered.");
             res.redirect("/signUp");
           }
         }
@@ -278,6 +301,7 @@ app.post("/login", async (req, res) => {
     async (err, result, field) => {
       if (err) throw err;
       else if (result.length == 0) {
+        req.flash("message", "User not registered.");
         res.redirect("/login");
       } else {
         let userId = result[0].userId;
@@ -299,6 +323,12 @@ app.post("/login", async (req, res) => {
           };
 
           const token = jwt.sign(data, jwtSecretKey);
+          if (isAdmin) {
+            req.flash("message", "Admin Logged in.");
+          }
+          if (!isAdmin) {
+            req.flash("message", "User Logged in.");
+          }
 
           res
             .cookie("token", token, {
@@ -308,6 +338,7 @@ app.post("/login", async (req, res) => {
             })
             .redirect(redirect);
         } else {
+          req.flash("message", "Wrong Password");
           res.redirect("/login");
         }
       }
@@ -316,6 +347,8 @@ app.post("/login", async (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
+  req.flash("message", "Logged out successfully.");
+
   res
     .cookie("token", "", {
       secure: true,
@@ -344,6 +377,7 @@ app.post("/newBook", authenticateAdmin, (req, res, next) => {
             WHERE title= ${db.escape(title)};`);
 
           if (!err) {
+            req.flash("message", "Records Updated.");
             res.redirect("/adminHome");
           }
         } else {
@@ -353,6 +387,7 @@ app.post("/newBook", authenticateAdmin, (req, res, next) => {
           )} );`);
 
           if (!err) {
+            req.flash("message", "New Book Added.");
             res.redirect("/adminHome");
           }
         }
@@ -360,6 +395,8 @@ app.post("/newBook", authenticateAdmin, (req, res, next) => {
     );
   } else {
     // feedback for invalid quantity
+    req.flash("message", "Invalid Quantity.");
+
     res.redirect("/adminHome");
   }
 });
@@ -387,26 +424,31 @@ app.post("/removeBook", authenticateAdmin, (req, res, next) => {
                 SET totalQuantity = ${db.escape(newTotalQuantity)},
                 available = ${db.escape(newAvailable)}
                 WHERE title= ${db.escape(title)};`);
-            return res.redirect("/adminHome");
+            req.flash("message", "Records Updated.");
+            res.redirect("/adminHome");
           } else if (
             newAvailable == newTotalQuantity &&
             newTotalQuantity == 0
           ) {
             db.query(`DELETE from books 
                 WHERE title= ${db.escape(title)};`);
-            return res.redirect("/adminHome");
+            req.flash("message", "Book deleted.");
+            res.redirect("/adminHome");
           } else {
-            return res.send("INVALID QUANTITY!!");
+            req.flash("message", "Invalid Quantity.");
+            res.redirect("/adminHome");
           }
         } else {
           if (!err) {
-            return res.send("BOOK DOESN'T EXIST");
+            req.flash("message", "Book doesn't Exist.");
+            res.redirect("/adminHome");
           }
         }
       }
     );
   } else {
     // feedback for invalid quantity
+    req.flash("message", "Invalid Quantity.");
     res.redirect("/adminHome");
   }
 });
@@ -419,23 +461,30 @@ app.post("/requestBook", authenticateUser, (req, res, next) => {
     `SELECT * FROM books WHERE bookId= ${db.escape(bookId)}`,
     (error, result) => {
       if (error) throw error;
-      else if (result.length === 0) return res.send("INVALID BOOK-ID!!");
-      else if (result[0].available === 0) return res.send("OUT OF STOCK!!");
-      else {
+      else if (result.length === 0) {
+        req.flash("message", "Book doesn't Exist.");
+        res.redirect("/userHome");
+      } else if (result[0].available === 0) {
+        req.flash("message", "Book Out of Stock.");
+        res.redirect("/userHome");
+      } else {
         db.query(
           `SELECT * FROM requests 
         WHERE bookId= ${db.escape(bookId)} AND userId= ${db.escape(userId)};`,
           (error, result) => {
             if (error) throw error;
-            else if (result.length > 0) return res.send("ALREADY REQUESTED!!");
-            else {
+            else if (result.length > 0) {
+              req.flash("message", "Already Requested.");
+              res.redirect("/userHome");
+            } else {
               db.query(
                 `INSERT INTO requests (bookId, userId) 
                 VALUES (${db.escape(bookId)}, ${db.escape(userId)})`,
                 (error, result) => {
                   if (error) throw error;
                   else {
-                    return res.redirect("/userHome");
+                    req.flash("message", "Book Successfully Requested.");
+                    res.redirect("/userHome");
                   }
                 }
               );
@@ -455,8 +504,10 @@ app.post("/returnBook", authenticateUser, async (req, res, next) => {
     `SELECT * FROM books WHERE bookId= ${db.escape(bookId)}`,
     (error, result) => {
       if (error) throw error;
-      else if (result.length === 0) return res.send("INVALID BOOK-ID!!");
-      else {
+      else if (result.length === 0) {
+        req.flash("message", "Book doesn't exist.");
+        res.redirect("/userRequests");
+      } else {
         db.query(
           `SELECT * FROM requests 
         WHERE bookId= ${db.escape(bookId)} AND userId= ${db.escape(
@@ -464,8 +515,10 @@ app.post("/returnBook", authenticateUser, async (req, res, next) => {
           )} AND state = 'issued';`,
           (error, result) => {
             if (error) throw error;
-            else if (result.length === 0) return res.send("BOOK NOT ISSUED!!");
-            else {
+            else if (result.length === 0) {
+              req.flash("message", "Book not issued.");
+              res.redirect("/userRequests");
+            } else {
               db.query(
                 `UPDATE requests SET state = 'checkedIn' WHERE bookId= ${db.escape(
                   bookId
@@ -473,7 +526,8 @@ app.post("/returnBook", authenticateUser, async (req, res, next) => {
                 (error, result) => {
                   if (error) throw error;
                   else {
-                    return res.redirect("/userRequests");
+                    req.flash("message", "Book returned Successfully.");
+                    res.redirect("/userRequests");
                   }
                 }
               );
@@ -494,8 +548,10 @@ app.post("/approveRequest", authenticateAdmin, async (req, res, next) => {
     )} AND state = 'requested';`,
     (error, result) => {
       if (error) throw error;
-      else if (result.length === 0) return res.send("INVALID REQUEST!!");
-      else {
+      else if (result.length === 0) {
+        req.flash("message", "Invalid Request.");
+        res.redirect("/adminRequests");
+      } else {
         var bookId = result[0].bookId;
 
         db.query(
@@ -515,16 +571,13 @@ app.post("/approveRequest", authenticateAdmin, async (req, res, next) => {
                         requestId
                       )} AND state = 'requested';`
                     );
-                    return res.redirect("/adminRequests");
+                    req.flash("message", "Book Issued Successfully.");
+                    res.redirect("/adminRequests");
                   }
                 }
               );
             } else {
-              db.query(
-                `DELETE FROM requests WHERE requestId= ${db.escape(
-                  requestId
-                )} AND state = 'requested';`
-              );
+              req.flash("message", "Book unavailable.");
               res.redirect("/adminRequests");
             }
           }
@@ -543,8 +596,10 @@ app.post("/rejectRequest", authenticateAdmin, async (req, res, next) => {
     )} AND state = 'requested';`,
     (error, result) => {
       if (error) throw error;
-      else if (result.length === 0) return res.send("INVALID REQUEST!!");
-      else {
+      else if (result.length === 0) {
+        req.flash("message", "Invalid Request.");
+        res.redirect("/adminRequests");
+      } else {
         db.query(
           `DELETE FROM requests WHERE requestId= ${db.escape(
             requestId
@@ -552,7 +607,8 @@ app.post("/rejectRequest", authenticateAdmin, async (req, res, next) => {
           (error, result) => {
             if (error || !result) throw error;
             else {
-              return res.redirect("/adminRequests");
+              req.flash("message", "Issue Request Rejected.");
+              res.redirect("/adminRequests");
             }
           }
         );
@@ -570,8 +626,10 @@ app.post("/approveReturn", authenticateAdmin, async (req, res, next) => {
     )} AND state = 'checkedIn';`,
     (error, result) => {
       if (error) throw error;
-      else if (result.length === 0) return res.send("INVALID REQUEST!!");
-      else {
+      else if (result.length === 0) {
+        req.flash("message", "Invalid Request.");
+        res.redirect("/adminRequests");
+      } else {
         var bookId = result[0].bookId;
 
         db.query(
@@ -584,7 +642,8 @@ app.post("/approveReturn", authenticateAdmin, async (req, res, next) => {
               db.query(
                 `UPDATE books SET available = available + 1 WHERE bookId = ${bookId}`
               );
-              return res.redirect("/adminRequests");
+              req.flash("message", "Return Request Approved.");
+              res.redirect("/adminRequests");
             }
           }
         );
@@ -602,8 +661,10 @@ app.post("/rejectReturn", authenticateAdmin, async (req, res, next) => {
     )} AND state = 'checkedIn';`,
     (error, result) => {
       if (error) throw error;
-      else if (result.length === 0) return res.send("INVALID REQUEST!!");
-      else {
+      else if (result.length === 0) {
+        req.flash("message", "Invalid Request.");
+        res.redirect("/adminRequests");
+      } else {
         db.query(
           `UPDATE requests SET state = 'issued' WHERE requestId= ${db.escape(
             requestId
@@ -611,7 +672,8 @@ app.post("/rejectReturn", authenticateAdmin, async (req, res, next) => {
           (error, result) => {
             if (error || !result) throw error;
             else {
-              return res.redirect("/adminRequests");
+              req.flash("message", "Return Request Rejected.");
+              res.redirect("/adminRequests");
             }
           }
         );
@@ -630,8 +692,10 @@ app.post("/requestAdmin", authenticateUser, (req, res) => {
       WHERE bookId= ${db.escape(bookId)} AND userId= ${db.escape(userId)};`,
       (error, result) => {
         if (error) throw error;
-        else if (result.length > 0) return res.send("ALREADY REQUESTED!!");
-        else {
+        else if (result.length > 0) {
+          req.flash("message", "Already Requested.");
+          res.redirect("/userHome");
+        } else {
           db.query(
             `INSERT INTO requests (bookId, userId, state) 
               VALUES (${db.escape(bookId)}, ${db.escape(
@@ -640,8 +704,8 @@ app.post("/requestAdmin", authenticateUser, (req, res) => {
             (error, result) => {
               if (error) throw error;
               else {
-                // successful Admin Request
-                return res.redirect("/userHome");
+                req.flash("message", "Admin Request Successful.");
+                res.redirect("/userHome");
               }
             }
           );
@@ -650,6 +714,8 @@ app.post("/requestAdmin", authenticateUser, (req, res) => {
     );
   } else {
     //handle invalid request
+    req.flash("message", "Invalid Request.");
+    res.redirect("/userHome");
   }
 });
 
@@ -663,8 +729,11 @@ app.post("/approveAdmin", authenticateAdmin, async (req, res, next) => {
     )} AND state = 'AdminRequest';`,
     (error, result) => {
       if (error) throw error;
-      else if (result.length === 0) return res.send("INVALID REQUEST!!");
-      else {
+      else if (result.length === 0) {
+        //handle invalid request
+        req.flash("message", "Invalid Request.");
+        res.redirect("/adminRequests");
+      } else {
         var bookId = result[0].bookId;
         if (bookId === -1) {
           db.query(
@@ -677,13 +746,15 @@ app.post("/approveAdmin", authenticateAdmin, async (req, res, next) => {
                 db.query(
                   `UPDATE users SET isAdmin = 1 WHERE userId = ${userId}`
                 );
-                return res.redirect("/adminRequests");
+                req.flash("message", "Admin Request Approved.");
+                res.redirect("/adminRequests");
               }
             }
           );
         } else {
-          //handle invalid request.
-          return res.redirect("/adminRequests");
+          //handle invalid request
+          req.flash("message", "Invalid Request.");
+          res.redirect("/adminRequests");
         }
       }
     }
@@ -700,8 +771,11 @@ app.post("/rejectAdmin", authenticateAdmin, async (req, res, next) => {
     )} AND state = 'AdminRequest';`,
     (error, result) => {
       if (error) throw error;
-      else if (result.length === 0) return res.send("INVALID REQUEST!!");
-      else {
+      else if (result.length === 0) {
+        //handle invalid request
+        req.flash("message", "Invalid Request.");
+        res.redirect("/adminRequests");
+      } else {
         var bookId = result[0].bookId;
         if (bookId === -1) {
           db.query(
@@ -711,14 +785,15 @@ app.post("/rejectAdmin", authenticateAdmin, async (req, res, next) => {
             (error, result) => {
               if (error || !result) throw error;
               else {
-                // handle valid  response
-                return res.redirect("/adminRequests");
+                req.flash("message", "Admin Request Rejected.");
+                res.redirect("/adminRequests");
               }
             }
           );
         } else {
-          //handle invalid request.
-          return res.redirect("/adminRequests");
+          //handle invalid request
+          req.flash("message", "Invalid Request.");
+          res.redirect("/adminRequests");
         }
       }
     }
