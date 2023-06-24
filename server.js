@@ -45,47 +45,57 @@ function authenticateUser(req, res, next) {
   const token = req.cookies.token;
   let tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
   let jwtSecretKey = process.env.JWT_SECRET_KEY;
-  const verified = jwt.verify(token, jwtSecretKey);
-  req.userId = verified.userId;
-  req.username = verified.username;
-  req.isAdmin = verified.isAdmin;
+  if (token) {
+    const verified = jwt.verify(token, jwtSecretKey);
+    req.userId = verified.userId;
+    req.username = verified.username;
+    req.isAdmin = verified.isAdmin;
 
-  db.query(
-    `SELECT * FROM users where userId=${db.escape(req.userId)};`,
-    (error, result) => {
-      if (result[0].isAdmin === verified.isAdmin) {
-        if (verified && !result[0].isAdmin) {
-          next();
+    db.query(
+      `SELECT * FROM users where userId=${db.escape(req.userId)};`,
+      (error, result) => {
+        if (result[0].isAdmin === verified.isAdmin) {
+          if (verified && !result[0].isAdmin) {
+            next();
+          }
+        } else {
+          req.flash("message", "Invalid Authentication.");
+          res.redirect("/login");
         }
-      } else {
-        req.flash("message", "Invalid Authentication.");
-        res.redirect("/login");
       }
-    }
-  );
+    );
+  } else {
+    req.flash("message", "Invalid Authentication.");
+    res.redirect("/login");
+  }
 }
 
 function authenticateAdmin(req, res, next) {
   const token = req.cookies.token;
   let tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
   let jwtSecretKey = process.env.JWT_SECRET_KEY;
-  const verified = jwt.verify(token, jwtSecretKey);
-  req.userId = verified.userId;
-  req.username = verified.username;
-  req.isAdmin = verified.isAdmin;
+  if (token) {
+    const verified = jwt.verify(token, jwtSecretKey);
+    req.userId = verified.userId;
+    req.username = verified.username;
+    req.isAdmin = verified.isAdmin;
 
-  db.query(
-    `SELECT * FROM users where userId=${db.escape(req.userId)};`,
-    (error, result) => {
-      if (result[0].isAdmin === verified.isAdmin) {
-        if (verified && result[0].isAdmin) {
-          next();
+    db.query(
+      `SELECT * FROM users where userId=${db.escape(req.userId)};`,
+      (error, result) => {
+        if (result[0].isAdmin === verified.isAdmin) {
+          if (verified && result[0].isAdmin) {
+            next();
+          }
+        } else {
+          res.redirect("/login");
         }
-      } else {
-        res.redirect("/login");
       }
-    }
-  );
+    );
+  } else {
+    req.flash("message", "Invalid Authentication.");
+    res.redirect("/login");
+  }
 }
 
 app.listen(port, (error) => {
